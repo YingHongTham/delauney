@@ -1,3 +1,19 @@
+/*
+ *
+ * areas for improvement:
+ * -InsertVertSlow: uses the flips, potentially creating and
+ *  destroying many triangles unnecessarily
+ *  should be able to just remove those triangles all at once
+ *  then perform a star operation
+ * -FindFaceContainPoint could be made faster,
+ *    e.g. draw line towards point and travel along triangles
+ *    that intersect the line
+ * -data structure for storing face list for vertices is
+ *  array, inserting between elements is slow
+ *  -> linked list? but traversing it is already slow
+ *
+ */
+
 class Triangulation {
   constructor() {
     this.V = []; // value at v is cyclic list of faces around v
