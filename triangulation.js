@@ -112,6 +112,7 @@ class Triangulation {
   FaceNextOfVert(f,v) {
     let i = this.V[v].indexOf(f);
     if (v < 3) { // one of the original outside vertices
+      // has absolute order, no faces outside
       return i+1 == this.V[v].length ? -1 : this.V[v][i+1];
     }
     return this.V[v][(i+1)%this.V[v].length];
@@ -183,37 +184,30 @@ class Triangulation {
       [a1,a2] = [a2,a1];
     }
     this.V[v][a1] = f;
-    this.V[v].splice(a2+1);
+    this.V[v].splice(a2,1);
   }
 
   // also returns the new faces
   FaceFlip(f1,f2) {
-    let v1p,v2p; // vert in f1,f2 not in other face
-    let e = []; // f1 = [v1p,e[0],e[1]]
-    for (let i = 0; i < 3; ++i) {
-      if (this.F[f2].indexOf(this.F[f1][i]) == -1) {
-        v1p = this.F[f1][i];
-        e = [this.F[f1][(i+1)%3], this.F[f1][(i+2)%3]];
-      }
-    }
-    for (let v of this.F[f2]) {
-      if (e.indexOf(v) == -1) {
-        v2p = v;
-        break;
-      }
-    }
+    // f1 = [v1p,e0,e1], f2 = [v2p,e1,e0]
+    let v1p = this.VertOppositeEdge(f1,f2);
+    let v2p = this.VertOppositeEdge(f2,f1);
+    let e0 = this.VertNextInFace(v1p,f1);
+    let e1 = this.VertNextInFace(e0,f1);
 
+    // add/remvoe faces
     let f3 = this.F.length;
     let f4 = f3 + 1;
-    this.F.push([e[0],v2p,v1p]); // f3
-    this.F.push([e[1],v1p,v2p]); // f4
+    this.F.push([e0,v2p,v1p]); // f3
+    this.F.push([e1,v1p,v2p]); // f4
     this.F[f1] = null;
     this.F[f2] = null;
 
+    // update vertex face list
     this.VertSplitFace(v1p,f1,f3,f4);
     this.VertSplitFace(v2p,f2,f4,f3);
-    this.VertMergeFace(e[0],f2,f1,f3);
-    this.VertMergeFace(e[1],f1,f2,f4);
+    this.VertMergeFace(e0,f2,f1,f3);
+    this.VertMergeFace(e1,f1,f2,f4);
 
     return [f3,f4];
   }
