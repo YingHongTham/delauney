@@ -61,13 +61,7 @@ const curMousePos = {x: 0, y: 0};
 canvas.addEventListener('mousedown', (e) => {
   let pos = canvasObj.cXYrev({x:e.offsetX,y:e.offsetY});
   console.log(pos);
-  console.log('this.V in eventlistener, before:', tau.V);
-  console.log('this.V[0] in eventlistener, before:', tau.V[0]);
-  setTimeout(() => {
-    tau.InsertVertSlow(pos);
-    console.log('this.V in eventlistener, end:', tau.V);
-    console.log('this.V[0] in eventlistener, end:', tau.V[0]);
-  }, 0);
+  tau.InsertVertSlow(pos);
 });
 canvas.addEventListener('mousemove', (e) => {
   let pos = canvasObj.cXYrev({x:e.offsetX,y:e.offsetY});

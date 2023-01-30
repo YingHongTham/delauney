@@ -24,16 +24,35 @@ class Triangulation {
     this.numFace = 0;
 
     // initialize with giant triangle
-    this.F.push([0,1,2]);
-    this.V.push([0]);
-    this.V.push([0]);
-    this.V.push([0]);
-    this.Vcoord.push({x: 0, y: 0});
-    this.Vcoord.push({x: 50, y: 0});
-    this.Vcoord.push({x: 20, y:50});
+    this.AddFace(0,1,2);
+    this.AddVert({x:0,y:0},[0]);
+    this.AddVert({x:50,y:0},[0]);
+    this.AddVert({x:25,y:50},[0]);
+  }
 
-    this.numVert = 3;
-    this.numFace = 1;
+  AddFace(v1,v2,v3) {
+    ++this.numFace;
+    this.F.push([v1,v2,v3]);
+    return this.F.length-1;
+  }
+  DeleteFace(f) {
+    this.F[f] = null;
+  }
+  NextVertInd() {
+    return this.V.length;
+  }
+  AddVert(pos,f,v=null) {
+    if (v === null) {
+      v = this.NextVertInd();
+      if (v >= this.V.length) {
+        this.V.push(null);
+        this.Vcoord.push(null);
+      }
+    }
+    this.V[v] = f;
+    this.Vcoord[v] = {x:pos.x,y:pos.y};
+    ++this.numVert;
+    return v;
   }
 
   InsertVertSlow(pos) {
@@ -95,21 +114,12 @@ class Triangulation {
     let [v1,v2,v3] = this.F[f];
     this.F[f] = null;
 
-    let vn = this.V.length; // new vertex index
+    let vn = this.NextVertInd(); // new vertex index
+    let f1 = this.AddFace(v2,v3,vn);
+    let f2 = this.AddFace(v3,v1,vn);
+    let f3 = this.AddFace(v1,v2,vn);
 
-    let f3 = this.F.length;
-    let f1 = f3 + 1;
-    let f2 = f1 + 1;
-    this.F.push([v1,v2,vn]); // f3
-    this.F.push([v2,v3,vn]); // f1
-    this.F.push([v3,v1,vn]); // f2
-
-    this.Vcoord.push({
-      x: pos.x,
-      y: pos.y,
-    });
-    this.V.push([f3,f1,f2]);
-
+    this.AddVert(pos,[f3,f1,f2]);
     this.VertSplitFace(v1,f,f3,f2);
     this.VertSplitFace(v2,f,f1,f3);
     this.VertSplitFace(v3,f,f2,f1);
@@ -212,12 +222,10 @@ class Triangulation {
     let e1 = this.VertNextInFace(e0,f1);
 
     // add/remvoe faces
-    let f3 = this.F.length;
-    let f4 = f3 + 1;
-    this.F.push([e0,v2p,v1p]); // f3
-    this.F.push([e1,v1p,v2p]); // f4
-    this.F[f1] = null;
-    this.F[f2] = null;
+    let f3 = this.AddFace(e0,v2p,v1p);
+    let f4 = this.AddFace(e1,v1p,v2p);
+    this.DeleteFace(f1);
+    this.DeleteFace(f2);
 
     // update vertex face list
     this.VertSplitFace(v1p,f1,f3,f4);
