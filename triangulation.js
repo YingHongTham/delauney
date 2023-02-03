@@ -18,7 +18,7 @@
  *          ...
  *          fk: f1,
  *        }; likewise for this.VPr(evious)
- *
+ * -NextVertInd recycle deleted face/vert indices
  */
 
 class Triangulation {
@@ -32,9 +32,10 @@ class Triangulation {
 
     // initialize with giant triangle
     this.AddFace(0,1,2);
-    this.AddVert({x:0,y:0},[0]);
-    this.AddVert({x:50,y:0},[0]);
-    this.AddVert({x:25,y:50},[0]);
+    // -1 makes CyclicSet an ordered set
+    this.AddVert({x:0,y:0},[-1,0]);
+    this.AddVert({x:50,y:0},[-1,0]);
+    this.AddVert({x:25,y:50},[-1,0]);
   }
 
   AddFace(v1,v2,v3) {
@@ -42,6 +43,7 @@ class Triangulation {
     this.F.push([v1,v2,v3]);
     return this.F.length-1;
   }
+  // clean up only (assumes vertices already forgot about f)
   DeleteFace(f) {
     --this.numFace;
     this.F[f] = null;
@@ -49,6 +51,8 @@ class Triangulation {
   NextVertInd() {
     return this.V.length;
   }
+  // f: arr of face indices
+  // v: manually set index of new vertex to be created
   AddVert(pos,f,v=null) {
     if (v === null) {
       v = this.NextVertInd();
@@ -57,7 +61,7 @@ class Triangulation {
         this.Vcoord.push(null);
       }
     }
-    this.V[v] = f;
+    this.V[v] = new CyclicSet(f);
     this.Vcoord[v] = {x:pos.x,y:pos.y};
     ++this.numVert;
     return v;
@@ -147,19 +151,10 @@ class Triangulation {
     return this.F[f][(i+2)%3];
   }
   FaceNextOfVert(f,v) {
-    let i = this.V[v].indexOf(f);
-    if (v < 3) { // one of the original outside vertices
-      // has absolute order, no faces outside
-      return i+1 == this.V[v].length ? -1 : this.V[v][i+1];
-    }
-    return this.V[v][(i+1)%this.V[v].length];
+    return this.V[v].NextElem(f);
   }
   FacePrevOfVert(f,v) {
-    let i = this.V[v].indexOf(f);
-    if (v < 3) { // one of the original outside vertices
-      return i == 0 ? -1 : this.V[v][i-1];
-    }
-    return this.V[v][i-1 == -1 ? this.V[v].length-1 : i-1];
+    return this.V[v].PrevElem(f);
   }
   FaceOppositeVert(f,v) {
     let vp = this.VertPrevInFace(v,f);
@@ -208,20 +203,27 @@ class Triangulation {
   // (     this.V[v] = [..,f,..]
   // ====> this.V[v] = [..,f1,f2,..]
   VertSplitFace(v,f,f1,f2) {
-    let a = this.V[v].indexOf(f);
-    this.V[v][a] = f2;
-    this.V[v].splice(a,0,f1); // add before f2
+    let fp = this.V[v].PrevElem(f);
+    this.V[v].DeleteElem(f);
+    if (this.V[v].IsEmpty()) {
+      this.V[v].InsertEmpty([f1,f2]);
+    }
+    else {
+      this.V[v].InsertAfter(fp,[f1,f2]);
+    }
   }
   // opposite of VertSplitFace
   // no assumption on order of f1,f2
   VertMergeFace(v,f1,f2,f) {
-    let a1 = this.V[v].indexOf(f1);
-    let a2 = this.V[v].indexOf(f2);
-    if (a1 > a2) {
-      [a1,a2] = [a2,a1];
+    this.V[v].DeleteElem(f1);
+    let fp = this.V[v].PrevElem(f2);
+    this.V[v].DeleteElem(f2);
+    if (this.V[v].IsEmpty()) {
+      this.V[v].InsertEmpty(f);
     }
-    this.V[v][a1] = f;
-    this.V[v].splice(a2,1);
+    else {
+      this.V[v].InsertAfter(fp,f);
+    }
   }
 
   // also returns the new faces
@@ -364,6 +366,9 @@ class CyclicSet {
     let y = this.elem[x][0];
     this.InsertAfter(y,val);
   }
+  IsEmpty() {
+    return this.numElem == 0;
+  }
   Print() {
     if (this.numElem == 0) {
       console.log('empty');
@@ -391,18 +396,18 @@ function signedA(p1,p2,p3) {
   return (p2.x-p1.x)*(p3.y-p1.y) - (p3.x-p1.x)*(p2.y-p1.y);
 }
 
-let x = new CyclicSet([2,3]);
-x.Print();
-console.log("x.InsertAfter(3,[1,5,6])");
-x.InsertAfter(3,[1,5,6]);
-x.Print();
-console.log("x.InsertBefore(2,[4])");
-x.InsertBefore(2,[4]);
-x.Print();
-console.log("x.DeleteElem(3)");
-x.DeleteElem(3)
-x.Print();
-console.log("delete all (one by one)");
-let ls = Object.keys(x.elem);
-for (let y of ls) x.DeleteElem(y);
-x.Print();
+//let x = new CyclicSet([2,3]);
+//x.Print();
+//console.log("x.InsertAfter(3,[1,5,6])");
+//x.InsertAfter(3,[1,5,6]);
+//x.Print();
+//console.log("x.InsertBefore(2,[4])");
+//x.InsertBefore(2,[4]);
+//x.Print();
+//console.log("x.DeleteElem(3)");
+//x.DeleteElem(3)
+//x.Print();
+//console.log("delete all (one by one)");
+//let ls = Object.keys(x.elem);
+//for (let y of ls) x.DeleteElem(y);
+//x.Print();
