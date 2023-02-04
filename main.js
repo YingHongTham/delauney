@@ -54,13 +54,14 @@ let canvasObj = {
 
 const tau = new Triangulation();
 //tau.InsertVertSlow({x: 30, y: 20});
-//tau.InsertVertStarOnly({x: 15, y: 15});
+//tau.InsertVertSlow({x: 30, y: 10});
+//tau.InsertVertSlow({x: 18, y: 22});
+//tau.InsertVertSlow({x: 10, y: 15});
 
 const curMousePos = {x: 0, y: 0};
 
 canvas.addEventListener('mousedown', (e) => {
   let pos = canvasObj.cXYrev({x:e.offsetX,y:e.offsetY});
-  console.log(pos);
   tau.InsertVertSlow(pos);
 });
 canvas.addEventListener('mousemove', (e) => {
@@ -77,7 +78,7 @@ function draw() {
   let curFace = tau.FindFaceContainPoint(curMousePos);
   let curVert = tau.FindVertContainPoint(curMousePos);
   let arrF = curFace >= 0 ? tau.F[curFace] : [];
-  let arrV = curVert >= 0 ? tau.V[curVert] : [];
+  let arrV = curVert >= 0 ? tau.V[curVert].ToArray() : [];
   ctx.fillText(`Face: ${curFace} - [${arrF}]`, 10, 20);
   ctx.fillText(`Vert: ${curVert} - [${arrV}]`, 10, 30);
 

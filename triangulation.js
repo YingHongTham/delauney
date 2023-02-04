@@ -8,17 +8,6 @@
  * -FindFaceContainPoint could be made faster,
  *    e.g. draw line towards point and travel along triangles
  *    that intersect the line
- * -data structure for storing face list for vertices is
- *  array, inserting between elements is slow
- *  -> linked list? but traversing it is already slow
- *  -> better: this.VNx, this.VPr - objects
- *        this.VNx[v] = {
- *          f1: f2,
- *          f2: f3,
- *          ...
- *          fk: f1,
- *        }; likewise for this.VPr(evious)
- * -NextVertInd recycle deleted face/vert indices
  */
 
 class Triangulation {
@@ -30,6 +19,9 @@ class Triangulation {
     this.numVert = 0;
     this.numFace = 0;
 
+    this.deletedVert = [];
+    this.deletedFace = [];
+
     // initialize with giant triangle
     this.AddFace(0,1,2);
     // -1 makes CyclicSet an ordered set
@@ -40,22 +32,31 @@ class Triangulation {
 
   AddFace(v1,v2,v3) {
     ++this.numFace;
-    this.F.push([v1,v2,v3]);
-    return this.F.length-1;
+    let f = this.NextFaceIndPop();
+    if (f >= this.F.length)
+      this.F.push(null);
+    this.F[f] = [v1,v2,v3];
+    return f;
   }
   // clean up only (assumes vertices already forgot about f)
   DeleteFace(f) {
     --this.numFace;
+    this.deletedFace.push(f);
     this.F[f] = null;
   }
-  NextVertInd() {
-    return this.V.length;
+  NextVertIndPop() {
+    return this.deletedVert.length > 0 ?
+      this.deletedVert.pop() : this.V.length;
+  }
+  NextFaceIndPop() {
+    return this.deletedFace.length > 0 ?
+      this.deletedFace.pop() : this.F.length;
   }
   // f: arr of face indices
   // v: manually set index of new vertex to be created
   AddVert(pos,f,v=null) {
     if (v === null) {
-      v = this.NextVertInd();
+      v = this.NextVertIndPop();
       if (v >= this.V.length) {
         this.V.push(null);
         this.Vcoord.push(null);
@@ -129,7 +130,7 @@ class Triangulation {
     let [v1,v2,v3] = this.F[f];
     this.F[f] = null;
 
-    let vn = this.NextVertInd(); // new vertex index
+    let vn = this.NextVertIndPop(); // new vertex index
     let f1 = this.AddFace(v2,v3,vn);
     let f2 = this.AddFace(v3,v1,vn);
     let f3 = this.AddFace(v1,v2,vn);
@@ -235,10 +236,10 @@ class Triangulation {
     let e1 = this.VertNextInFace(e0,f1);
 
     // add/remvoe faces
-    let f3 = this.AddFace(e0,v2p,v1p);
-    let f4 = this.AddFace(e1,v1p,v2p);
     this.DeleteFace(f1);
     this.DeleteFace(f2);
+    let f3 = this.AddFace(e0,v2p,v1p);
+    let f4 = this.AddFace(e1,v1p,v2p);
 
     // update vertex face list
     this.VertSplitFace(v1p,f1,f3,f4);
@@ -325,18 +326,17 @@ class CyclicSet {
     }
     let len = val.length;
     this.numElem = len;
-    if (len === 0) return;
+    if (len == 0) return;
+    if (len == 1) {
+      this.elem[val[0]] = [val[0],val[0]];
+      return;
+    }
 
     for (let i = 1; i < len - 1; ++i) {
       this.elem[val[i]] = [val[i-1],val[i+1]];
     }
-    if (len == 1) {
-      this.elem[val[0]] = [val[0],val[0]];
-    }
-    else {
-      this.elem[val[0]] = [val[len-1],val[1]];
-      this.elem[val[len-1]] = [val[len-2],val[0]];
-    }
+    this.elem[val[0]] = [val[len-1],val[1]];
+    this.elem[val[len-1]] = [val[len-2],val[0]];
   }
   // val is value(s) to be inserted - arr or one val
   // x is value after which val should be inserted
@@ -388,6 +388,18 @@ class CyclicSet {
       x = this.elem[x][0];
     }
     console.log('backward:', ls);
+  }
+  ToArray() {
+    let x = parseInt(Object.keys(this.elem)[0]);
+    if (this.elem[-1] !== undefined) {
+      x = -1;
+    }
+    let ls = [];
+    for (let i = 0; i < this.numElem; ++i) {
+      ls.push(x);
+      x = this.elem[x][1];
+    }
+    return ls;
   }
 }
 
