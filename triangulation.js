@@ -95,6 +95,7 @@ class Triangulation {
     this.InsertVertInFace(pos,f0);
   }
 
+  // still in progress, DONT USE
   InsertVert(pos) {
     let f0 = this.FindFaceContainPoint(pos);
     if (f0 == -1)
@@ -128,7 +129,7 @@ class Triangulation {
   // returns the new vertex and faces
   InsertVertInFace(pos,f) {
     let [v1,v2,v3] = this.F[f];
-    this.F[f] = null;
+    this.DeleteFace(f);
 
     let vn = this.NextVertIndPop(); // new vertex index
     let f1 = this.AddFace(v2,v3,vn);
